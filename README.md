@@ -1,40 +1,188 @@
-<<<<<<< HEAD
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C6 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- | -------- | -------- |
-
-# _Sample project_
-
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
-
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
-
-
-
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
-
-## Example folder contents
-
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
-
-Below is short explanation of remaining files in the project folder.
-
-```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
-```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
-=======
 # my_lexin
 Custom hardware implementation of XiaoZhi AI WebSocket client + hardware control (non-universal)
->>>>>>> origin/main
+## 硬件MSP功能注册流程  
+1. **设备端发送hello**  
+```json
+{
+  "type": "hello",
+  "version": 1,
+  "features": {
+    "mcp": true//通知服务器设备支持mcp
+  },
+  "transport": "websocket",
+  "audio_params": {
+    "format": "opus",
+    "sample_rate": 16000,
+    "channels": 1,
+    "frame_duration": 60
+  }
+}
+```
+
+2. **服务器请求初始化MCP**  
+```json
+{
+  "type": "mcp",
+  "payload": {
+    "jsonrpc": "2.0",
+    "method": "initialize",
+    "id": 1,
+    "params": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {
+        "vision": {
+          "url": "http://api.xiaozhi.me/vision/explain",
+          "token": "5a1595ab-df08-487c-b373-47e29cad9809"
+        }
+      },
+      "clientInfo": {
+        "name": "xiaozhi-mqtt-client",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "session_id": "5a1595ab"
+}
+```
+
+3. **设备端返回初始化结果**  
+```json
+{
+  "session_id": "5a1595ab",
+  "type": "mcp",
+  "payload": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {
+        "tools": {
+          "list": true,//回复服务端设备支持工具列表
+          "call": true //回复服务端设备支持工具调用
+        }
+      },
+      "serverInfo": {
+        "name": "wangwang",
+        "version": "1.8.2"
+      }
+    }
+  }
+}
+```
+
+4. **服务端通知已收到初始化结果**  
+```json
+{
+  "type": "mcp",
+  "payload": {
+    "jsonrpc": "2.0",
+    "method": "notifications/initialized"
+  },
+  "session_id": "5a1595ab"
+}
+```
+
+5. **服务端申请toollist**  
+```json
+{
+  "type": "mcp",
+  "payload": {
+    "jsonrpc": "2.0",
+    "method": "tools/list",
+    "id": 2,
+    "params": {}
+  },
+  "session_id": "e18f7652"
+}
+```
+
+6. **设备端返回toollist**  
+```json
+{
+  "session_id": "e18f7652",
+  "type": "mcp",
+  "payload": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "tools": [
+          //功能1 设置音量
+        {
+          "name": "set_volume",
+          "description": "Set the volume of the audio speaker, volume is 50 initially.",
+          "inputSchema": {
+            "type": "object",
+            "required": ["volume"],
+            "properties": {
+              "volume": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        },
+          //功能2 控制灯开关
+        {
+          "name": "light_switch",
+          "description": "Control the light state (on/off)",
+          "inputSchema": {
+            "type": "object",
+            "required": ["state"],
+            "properties": {
+              "state": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+## 硬件MSP功能调用流程  
+1. **语音表明使用tool的意图**  
+> 例如：声音小点或者我听不清
+
+2. **服务端调用tool**  
+```json
+{
+  "type": "mcp",
+  "payload": {
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "id": 3,
+    "params": {
+      "name": "set_volume",
+      "arguments": {
+        "volume": 30
+      }
+    }
+  },
+  "session_id": "e18f7652"
+}
+```
+
+3. **服务端回复tool是否执行**  
+```json
+{
+  "session_id": "e18f7652",
+  "type": "mcp",
+  "payload": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "true"
+        }
+      ],
+      "isError": false
+    }
+  }
+}
+```
+
