@@ -17,10 +17,13 @@
 #include "Protocol_Http.h"
 #include "Protocol_Websocket.h"
 #include "Com_State.h"
+#include "Bsp_LCD.h"
 
 Audio_t *audio;
 ProtocolWebsocket_t *protocol_websocket;
 Bsp_NVS_t *bsp_nvs;
+Bsp_LCD_Handle_t*bsp_lcd;
+
 
 void App_MCP_Handler(int id_num, char *method_str, cJSON *params_json);
 
@@ -42,9 +45,12 @@ void app_main(void)
     Bsp_NVS_GetMess(bsp_nvs);
     Bsp_NVS_ReadMess(bsp_nvs, &mac, &uuid);
 
+    bsp_lcd = Bsp_LCD_Init();
+
     audio = Audio_Init();
     Audio_Callback_Register(audio, Vad_Callback, Wakeup_Callback);
     Audio_Start(audio);
+
 
     Protocal_Http_Init(mac, uuid);
     protocol_websocket = Protocol_Websocket_Init(url, mac, uuid);
