@@ -8,6 +8,8 @@
 #include "Bsp_ES8311.h"
 #include "Bsp_WS2812.h"
 #include "Bsp_NVS.h"
+#include "Bsp_LCD.h"
+#include "Bsp_Display.h"
 
 #include "Audio_SR.h"
 #include "Audio_Encode.h"
@@ -17,7 +19,6 @@
 #include "Protocol_Http.h"
 #include "Protocol_Websocket.h"
 #include "Com_State.h"
-#include "Bsp_LCD.h"
 
 Audio_t *audio;
 ProtocolWebsocket_t *protocol_websocket;
@@ -47,6 +48,9 @@ void app_main(void)
 
     bsp_lcd = Bsp_LCD_Init();
 
+    Bsp_Display_Init(bsp_lcd);
+    Bsp_Display_Text("hello, lvgl!--------------------------------------------");
+    
     audio = Audio_Init();
     Audio_Callback_Register(audio, Vad_Callback, Wakeup_Callback);
     Audio_Start(audio);

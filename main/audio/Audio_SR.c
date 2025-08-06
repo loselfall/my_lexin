@@ -68,9 +68,9 @@ void Audio_SR_Start(Audio_SR_t *audio_sr)
     }
     audio_sr->task_flag = true;
     // 启动抓获
-    xTaskCreate(fetch_Task, "fetch", 8 * 1024, audio_sr, 5, &(audio_sr->fetch_handle));
+    xTaskCreateWithCaps(fetch_Task, "fetch", 8 * 1024, audio_sr, 5, &(audio_sr->fetch_handle),MALLOC_CAP_SPIRAM);
     // 启动喂给
-    xTaskCreate(feed_Task, "feed", 8 * 1024, audio_sr, 5, &(audio_sr->feed_handle));
+    xTaskCreateWithCaps(feed_Task, "feed", 8 * 1024, audio_sr, 5, &(audio_sr->feed_handle),MALLOC_CAP_SPIRAM);
 }
 
 /// @brief 声音识别模块停止

@@ -21,3 +21,4 @@ dependencies:
   espressif/esp_websocket_client: ^1.5.0
   espressif/led_strip: ^3.0.1~1
   espressif/esp_lvgl_port: ^2.6.0
+  78/xiaozhi-fonts: ^1.3.2
