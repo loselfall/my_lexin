@@ -1,0 +1,24 @@
+idf_component_register(
+    SRCS 
+        "main.c"
+        "./com/Com_Debug.c"
+        "./com/Com_State.c"
+        "./bsp/Bsp_ES8311.c"
+        "./bsp/Bsp_Wifi_Ble.c"
+        "./bsp/Bsp_WS2812.c"
+        "./bsp/Bsp_NVS.c"
+        "./bsp/Bsp_Display.c"
+        "./bsp/Bsp_LCD.c"
+        "./audio/Audio.c"
+        "./audio/Audio_SR.c"
+        "./audio/Audio_Encode.c"
+        "./audio/Audio_Decode.c"
+        "./Protocol/Protocol_Websocket.c"
+        "./Protocol/Protocol_Http.c"
+        
+        INCLUDE_DIRS 
+        "./audio/"
+        "./bsp/"
+        "./com/"
+        "./Protocol/"
+)

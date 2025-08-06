@@ -1,0 +1,10 @@
+#忽略组件
+managed_components/
+#忽略编译
+build/
+#忽略隐藏文件
+.vscode/
+.devcontainer/
+# 系统/编辑器临时文件
+*.swp
+*.old
