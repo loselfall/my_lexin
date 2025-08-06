@@ -177,10 +177,10 @@ Custom hardware implementation of XiaoZhi AI WebSocket client + hardware control
       "content": [
         {
           "type": "text",
-          "text": "true"
+          "text": "true"//表示执行
         }
       ],
-      "isError": false
+      "isError": false//表示没有异常
     }
   }
 }
