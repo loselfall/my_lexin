@@ -12,12 +12,14 @@
 #include "esp_lcd_panel_vendor.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lvgl_port.h"
-
+#include "font_emoji.h"
+ 
 #include "Bsp_LCD.h"
 
 void Bsp_Display_Init(Bsp_LCD_Handle_t*bsp_lcd);
 
 void Bsp_Display_Text(char*str);
-
+void Bsp_Display_Button(void);
+void Bsp_Display_emoji(char*str);
 
 #endif /* __BSP_DISPLAY_H__ */

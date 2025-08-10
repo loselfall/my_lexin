@@ -68,9 +68,9 @@ void Audio_SR_Start(Audio_SR_t *audio_sr)
     }
     audio_sr->task_flag = true;
     // 启动抓获
-    xTaskCreateWithCaps(fetch_Task, "fetch", 8 * 1024, audio_sr, 5, &(audio_sr->fetch_handle),MALLOC_CAP_SPIRAM);
+    xTaskCreateWithCaps(fetch_Task, "fetch", 8 * 1024, audio_sr, 5, &(audio_sr->fetch_handle), MALLOC_CAP_SPIRAM);
     // 启动喂给
-    xTaskCreateWithCaps(feed_Task, "feed", 8 * 1024, audio_sr, 5, &(audio_sr->feed_handle),MALLOC_CAP_SPIRAM);
+    xTaskCreateWithCaps(feed_Task, "feed", 8 * 1024, audio_sr, 5, &(audio_sr->feed_handle), MALLOC_CAP_SPIRAM);
 }
 
 /// @brief 声音识别模块停止
@@ -100,6 +100,17 @@ void Audio_SR_State_Callback_Register(Audio_SR_t *audio_sr, Callback_Vad_t CBvad
     audio_sr->wakeupargs = NULL;
 }
 
+Audio_SR_t *audio_sr_error = NULL;
+
+void fetch_error_deal(void)
+{
+    if (audio_sr_error == NULL)
+    {
+        return;
+    }
+    audio_sr_error->afe_handle->reset_buffer(audio_sr_error->afe_data);
+}
+
 /// @brief 数据抓取任务
 /// @param args
 static void fetch_Task(void *args)
@@ -107,6 +118,8 @@ static void fetch_Task(void *args)
 
     // 强转句柄
     Audio_SR_t *audio_sr = (Audio_SR_t *)args;
+    //危险危险
+    audio_sr_error = audio_sr;
     // 获取afe句柄和实例
     esp_afe_sr_iface_t *afe_handle = audio_sr->afe_handle;
     esp_afe_sr_data_t *afe_data = audio_sr->afe_data;
@@ -122,7 +135,7 @@ static void fetch_Task(void *args)
         result = afe_handle->fetch(afe_data);
         if (result->ringbuff_free_pct < 0.2)
         {
-            afe_handle->reset_buffer(audio_sr->afe_data);
+            afe_handle->reset_buffer(afe_data);
             MY_LOGE("EEEEEEEEEEEEEEEEEEEE,紧急清除buffer");
         }
         processed_audio = result->data;
@@ -167,7 +180,7 @@ static void fetch_Task(void *args)
             MY_LOGE("DDDDDDDDDDDDDDDDDD,紧急清除buffer");
         }
         vTaskDelay(8);
-          if (result->ringbuff_free_pct < 0.2)
+        if (result->ringbuff_free_pct < 0.2)
         {
             afe_handle->reset_buffer(audio_sr->afe_data);
             MY_LOGE("CCCCCCCCCCCCCCCCCC,紧急清除buffer");

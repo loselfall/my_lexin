@@ -9,12 +9,14 @@ idf_component_register(
         "./bsp/Bsp_NVS.c"
         "./bsp/Bsp_Display.c"
         "./bsp/Bsp_LCD.c"
+        "./bsp/Bsp_Pwm.c"
         "./audio/Audio.c"
         "./audio/Audio_SR.c"
         "./audio/Audio_Encode.c"
         "./audio/Audio_Decode.c"
         "./Protocol/Protocol_Websocket.c"
         "./Protocol/Protocol_Http.c"
+        "./Protocol/Protocol_mqtt.c"
         
         INCLUDE_DIRS 
         "./audio/"

@@ -15,6 +15,7 @@
 #include "esp_log.h"
 
 #include "esp_lcd_panel_interface.h"
+#include "Bsp_Pwm.h"
 
 
 #if CONFIG_EXAMPLE_LCD_CONTROLLER_ILI9341
@@ -58,5 +59,5 @@ typedef struct
 
 
 Bsp_LCD_Handle_t* Bsp_LCD_Init(void);
-
+void Bsp_LCD_Set_Brightness(int Brightness);
 #endif /* __BSP_LCD_H__ */

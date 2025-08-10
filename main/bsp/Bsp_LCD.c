@@ -44,7 +44,7 @@ Bsp_LCD_Handle_t* Bsp_LCD_Init(void)
     lcd_handle->panel_handle = NULL;
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = PIN_NUM_LCD_RST,
-        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .bits_per_pixel = 16,
     };
     // 安装面板驱动
@@ -58,6 +58,15 @@ Bsp_LCD_Handle_t* Bsp_LCD_Init(void)
     ESP_ERROR_CHECK(esp_lcd_panel_mirror(lcd_handle->panel_handle, true, false));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(lcd_handle->panel_handle, true));
     // 打开背光
-    gpio_set_level(PIN_NUM_BK_LIGHT, LCD_BK_LIGHT_ON_LEVEL);
+    //gpio_set_level(PIN_NUM_BK_LIGHT, LCD_BK_LIGHT_ON_LEVEL);
+    Bsp_Pwm_Init();
     return lcd_handle;
 }
+
+void Bsp_LCD_Set_Brightness(int Brightness){
+    
+    int duty = (int)(LEDC_DUTY_MAX*Brightness/100);
+    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, duty);
+    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL);
+}
+

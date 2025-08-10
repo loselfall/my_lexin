@@ -18,13 +18,13 @@
 
 #include "Protocol_Http.h"
 #include "Protocol_Websocket.h"
+#include "Protocol_mqtt.h"
 #include "Com_State.h"
 
 Audio_t *audio;
 ProtocolWebsocket_t *protocol_websocket;
 Bsp_NVS_t *bsp_nvs;
-Bsp_LCD_Handle_t*bsp_lcd;
-
+Bsp_LCD_Handle_t *bsp_lcd;
 
 void App_MCP_Handler(int id_num, char *method_str, cJSON *params_json);
 
@@ -49,20 +49,24 @@ void app_main(void)
     bsp_lcd = Bsp_LCD_Init();
 
     Bsp_Display_Init(bsp_lcd);
-    Bsp_Display_Text("hello, lvgl!--------------------------------------------");
-    
+    Bsp_Display_emoji("neutral");
+    Bsp_Display_Button();
+    Bsp_Display_Text("乐鑫智慧助手");
+
     audio = Audio_Init();
     Audio_Callback_Register(audio, Vad_Callback, Wakeup_Callback);
     Audio_Start(audio);
 
-
     Protocal_Http_Init(mac, uuid);
     protocol_websocket = Protocol_Websocket_Init(url, mac, uuid);
     Protocol_Websocket_CB_register(protocol_websocket, Json_Callback, Opus_Callback, Fin_Callback);
+    Protocol_mqtt_Init();
 
     Bsp_WS2812_Set(RED);
     uint8_t *opusdata = malloc(1024);
     size_t opuslen = 0;
+
+    // Protocol_mqtt_Publish(1, 100);
     while (1)
     {
         if (Protocol_Websocket_Is_Connect(protocol_websocket))
@@ -94,12 +98,12 @@ void Vad_Callback(void *args, vad_state_t state)
     }
 }
 
-void open_websocket_listen_week(void)
+void open_websocket_listen_weak(void)
 {
     printf("**ListenUp**\r\n");
     Protocol_Websocket_Send_Listen_Start(protocol_websocket);
 }
-void stop_websocket_listen_week(void)
+void stop_websocket_listen_weak(void)
 {
     printf("**ListenDown**\r\n");
     Protocol_Websocket_Send_Listen_Stop(protocol_websocket);
@@ -111,7 +115,7 @@ void Wakeup_Callback(void *args)
     {
         Protocol_Websocket_Start(protocol_websocket);
         Protocol_Websocket_Send_Hello(protocol_websocket);
-        open_websocket_listen_week();
+        open_websocket_listen_weak();
     }
     else if (com_state != LISTEN)
     {
@@ -124,6 +128,10 @@ void Wakeup_Callback(void *args)
     Com_State_Change(IDLE);
 }
 
+/// @brief json解析并处理
+/// @param protocol_websocket
+/// @param data
+/// @param len
 void Json_Callback(ProtocolWebsocket_t *protocol_websocket, const char *data, int len)
 {
     printf("%.*s\r\n", len, data);
@@ -200,6 +208,18 @@ void Json_Callback(ProtocolWebsocket_t *protocol_websocket, const char *data, in
                 {
                     Com_State_Change(IDLE);
                 }
+                else if (strcmp(state_str, "sentence_start") == 0)
+                {
+                    cJSON *text_json = cJSON_GetObjectItem(root, "text");
+                    char *text_str = cJSON_GetStringValue(text_json);
+                    if (text_str != NULL)
+                    {
+                        Bsp_Display_Text(text_str);
+                    }
+                }
+                else if (strcmp(state_str, "sentence_end") == 0)
+                {
+                }
             }
         }
         else if (strcmp(type_str, "stt") == 0)
@@ -207,6 +227,12 @@ void Json_Callback(ProtocolWebsocket_t *protocol_websocket, const char *data, in
         }
         else if (strcmp(type_str, "llm") == 0)
         {
+            cJSON *emotion_j = cJSON_GetObjectItem(root, "emotion");
+            char *emotion_str = cJSON_GetStringValue(emotion_j);
+            if (emotion_str != NULL)
+            {
+                Bsp_Display_emoji(emotion_str);
+            }
         }
         else if (strcmp(type_str, "mcp") == 0)
         {
@@ -246,6 +272,9 @@ void Fin_Callback(void)
 {
     Com_State_Change(UNCONNECT);
     Audio_Fall_Sleep(audio);
+    Bsp_Display_Text("未连接");
+    Bsp_Display_emoji("neutral");
+    fetch_error_deal();
     MY_LOGE("断开连接,退出唤醒");
 }
 
@@ -415,6 +444,52 @@ void App_MCP_Handler(int id_num, char *method_str, cJSON *params_json)
         }
         cJSON_AddStringToObject(state, "type", "boolean");
 
+        // 设备3
+        cJSON *tool_setlcd = cJSON_CreateObject();
+        if (tool_setlcd == NULL)
+        {
+            MY_LOGE("tool_setlcd数组创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON_AddItemToArray(tools, tool_setlcd);
+
+        cJSON_AddStringToObject(tool_setlcd, "name", "set_screen");
+        cJSON_AddStringToObject(tool_setlcd, "description", "Set the brightness of the screen,brightness is 100,initially.");
+        cJSON *ischema_val_l = cJSON_AddObjectToObject(tool_setlcd, "inputSchema");
+        if (ischema_val_l == NULL)
+        {
+            MY_LOGE("ischema_val创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON_AddStringToObject(ischema_val_l, "type", "object");
+        const char *items_val_l[1] = {"brightness"};
+        cJSON *required_l = cJSON_CreateStringArray(items_val_l, 1);
+        if (required_l == NULL)
+        {
+            MY_LOGE("ischema_val创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON_AddItemToObject(ischema_val_l, "required", required_l);
+        cJSON *prop_val_l = cJSON_AddObjectToObject(ischema_val_l, "properties");
+        if (prop_val_l == NULL)
+        {
+            MY_LOGE("ischema_val创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON *brightness = cJSON_AddObjectToObject(prop_val_l, "brightness");
+        if (brightness == NULL)
+        {
+            MY_LOGE("ischema_val创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON_AddStringToObject(brightness, "type", "integer");
+        cJSON_AddNumberToObject(brightness, "minimum", 0);
+        cJSON_AddNumberToObject(brightness, "maximum", 100);
         // char *tool_list_str = cJSON_PrintUnformatted(payload);
         // if (tool_list_str != NULL)
         // {
@@ -423,6 +498,62 @@ void App_MCP_Handler(int id_num, char *method_str, cJSON *params_json)
         // }
         // cJSON_Delete(payload);
         // return ;
+        // 设备4-------------------------------
+        cJSON *tool_setmotor = cJSON_CreateObject();
+        if (tool_setmotor == NULL)
+        {
+            MY_LOGE("tool_setmotor数组创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON_AddItemToArray(tools, tool_setmotor);
+
+        cJSON_AddStringToObject(tool_setmotor, "name", "set_motor");
+        cJSON_AddStringToObject(tool_setmotor, "description", "Set the state(on/off) and speed of the Motor,state is off and speed is 0,initially.when state is off,the speed must be 0");
+        cJSON *ischema_val_m = cJSON_AddObjectToObject(tool_setmotor, "inputSchema");
+        if (ischema_val_m == NULL)
+        {
+            MY_LOGE("ischema_val创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON_AddStringToObject(ischema_val_m, "type", "object");
+        const char *items_val_m[2] = {"motorstate", "speed"};
+        cJSON *required_m = cJSON_CreateStringArray(items_val_m, 2);
+        if (required_m == NULL)
+        {
+            MY_LOGE("ischema_val创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON_AddItemToObject(ischema_val_m, "required", required_m);
+        cJSON *prop_val_m = cJSON_AddObjectToObject(ischema_val_m, "properties");
+        if (prop_val_m == NULL)
+        {
+            MY_LOGE("ischema_val创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON *motorstate = cJSON_AddObjectToObject(prop_val_m, "motorstate");
+        if (motorstate == NULL)
+        {
+            MY_LOGE("ischema_val创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON_AddStringToObject(motorstate, "type", "bool");
+
+        cJSON *speed = cJSON_AddObjectToObject(prop_val_m, "speed");
+        if (speed == NULL)
+        {
+            MY_LOGE("ischema_val创建失败");
+            cJSON_Delete(payload);
+            return;
+        }
+        cJSON_AddStringToObject(speed, "type", "integer");
+        cJSON_AddNumberToObject(speed, "minimum", -260);
+        cJSON_AddNumberToObject(speed, "maximum", 260);
+        // 设备4-------------------------------
     }
     else if (strcmp(method_str, "tools/call") == 0)
     { // 响应功能1、2、3
@@ -468,6 +599,41 @@ void App_MCP_Handler(int id_num, char *method_str, cJSON *params_json)
             {
                 Bsp_WS2812_Close();
             }
+            is_ok = true;
+        }
+        else if (strcmp(name_str, "set_screen") == 0)
+        {
+            // 屏幕设备控制
+            cJSON *brightness_js = cJSON_GetObjectItem(argu_js, "brightness");
+            if (brightness_js == NULL)
+            {
+                cJSON_Delete(payload);
+                return;
+            }
+            int vol = cJSON_GetNumberValue(brightness_js);
+
+            Bsp_LCD_Set_Brightness(vol);
+            is_ok = true;
+        }
+        // set_motor
+        else if (strcmp(name_str, "set_motor") == 0)
+        {
+            // 电机设备控制
+            cJSON *motorsw_js = cJSON_GetObjectItem(argu_js, "motorstate");
+            if (motorsw_js == NULL)
+            {
+                cJSON_Delete(payload);
+                return;
+            }
+            bool motor_sw = cJSON_IsTrue(motorsw_js);
+            cJSON *speed_js = cJSON_GetObjectItem(argu_js, "speed");
+            if (speed_js == NULL)
+            {
+                cJSON_Delete(payload);
+                return;
+            }
+            int speed_val = cJSON_GetNumberValue(speed_js);
+            Protocol_mqtt_Publish(motor_sw,speed_val);
             is_ok = true;
         }
         if (is_ok)

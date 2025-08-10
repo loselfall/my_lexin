@@ -32,6 +32,7 @@ void Audio_SR_State_Callback_Register(Audio_SR_t* audio_sr,Callback_Vad_t CBvad,
 void Audio_SR_Set_Fetch_Out_Buffer(Audio_SR_t* audio_sr,RingbufHandle_t buffer);
 
 void Audio_SR_Fall_Sleep(Audio_SR_t* audio_sr);
+void fetch_error_deal(void);
 
 
 

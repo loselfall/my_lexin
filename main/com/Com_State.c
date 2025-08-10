@@ -18,11 +18,11 @@ VOICE_SEND voice_send = VOICE_TO_SR;
 
 COM_STATE com_state = UNCONNECT;
 
-__weak_symbol void open_websocket_listen_week(void){
+__weak_symbol void open_websocket_listen_weak(void){
 
 }
 
-__weak_symbol void stop_websocket_listen_week(void){
+__weak_symbol void stop_websocket_listen_weak(void){
 
 }
 
@@ -36,8 +36,8 @@ void Com_State_Change(COM_STATE new_state)
         switch (com_state)
         {
         case IDLE:
-        stop_websocket_listen_week();
-        open_websocket_listen_week();
+        stop_websocket_listen_weak();
+        open_websocket_listen_weak();
         case UNCONNECT:;
         case SPEAK:
             voice_send = VOICE_TO_SR;
